@@ -1,0 +1,388 @@
+---
+title: "Demographics"
+author: "Nipunjeet Gujral"
+date: "March 1, 2020"
+output:
+  html_document:
+    theme: flatly
+    highlight: haddock
+    code_folding: hide
+---
+
+```{r library}
+library(tidyverse)
+library(plotly)
+library(leaflet)
+library(readxl)
+```
+
+
+```{r import data}
+# Map ####
+Map <- rgdal::readOGR("./Data/California Counties.geojson")
+
+# data for map
+ordered_county_names <- c("Del Norte", "Siskiyou", "Modoc", "Humboldt", "Trinity",
+                          "Shasta", "Lassen", "Tehama", "Plumas", "Butte", "Mendocino",
+                          "Glenn", "Sierra", "Yuba", "Lake", "Nevada", "Colusa", "Sutter",
+                          "Placer", "El Dorado", "Yolo", "Alpine", "Sonoma", "Napa",
+                          "Sacramento", "Mono", "Amador", "Solano", "Calaveras", 
+                          "Tuolumne", "Marin", "San Joaquin", "Contra Costa", "Stanislaus",
+                          "Alameda", "Mariposa", "San Francisco", "Madera", "San Mateo",
+                          "Merced", "Fresno", "Santa Clara", "Inyo", "Santa Cruz",
+                          "San Benito", "Monterey", "Tulare", "Kings", "San Bernardino",
+                          "Kern", "San Luis Obispo", "Santa Barbara", "Los Angeles",
+                          "Riverside", "Orange", "Imperial", "San Diego", "Ventura")
+
+
+California_2019 <- readxl::read_xlsx("./Data/population_breakdown.xlsx", 
+                                     sheet = "People") %>% 
+  dplyr::rename("Population" = "Population (January 2019)") %>% 
+  dplyr::mutate(Log_pop = log10(Population),
+                County = factor(County, levels = ordered_county_names)) %>% 
+  dplyr::arrange(County)
+
+
+Map_Information <- California_2019 %>% dplyr::select("County", "Population", "Log_pop")
+
+
+
+
+# Other Plots ####
+
+# Revenue 
+Revenue <- readxl::read_xlsx("./Data/population_breakdown.xlsx", sheet = "Revenue (2017-18)")
+
+# Expenditures
+Expenditures <- readxl::read_xlsx("./Data/population_breakdown.xlsx", sheet = "Expenditures (2017-18)")
+
+# Housing
+Housing <- readxl::read_xlsx("./Data/population_breakdown.xlsx", sheet = "County Profile")
+
+# Industry
+Industry <- readr::read_csv("./Data/historical_employment.csv")
+
+# Unemployment
+Unemployment <- readr::read_csv("./Data/unemployment_rates.csv")
+
+# Population Growth
+Population_Growth <- readr::read_csv("./Data/gender_per_county.csv")
+```
+
+
+```{r Map}
+labels <- base::sprintf("<strong> <h2> %s </h2> </strong>
+                        
+                        <h3>Population: %s</h3>
+                        <h3>Total Revenue: </h3>
+                        <h3>Szie: </h3>
+                        <h3>GDP: </h3>", 
+                        Map_Information$County,
+                        format(Map_Information$Population, format = "d", big.mark = ",")) %>% 
+          lapply(htmltools::HTML)
+  
+  
+highlight_options <- leaflet::highlightOptions(weight = 5,
+                                               color = "#8C8C8C",
+                                               dashArray = "",
+                                               fillOpacity = 0.7,
+                                               bringToFront = TRUE)
+  
+pal <- leaflet::colorBin("Blues",
+                         domain = Map_Information$Log_pop,
+                         bins = c(Inf, seq(7, 3, -0.25), -Inf))
+
+pal_visual <- leaflet::colorBin("Blues",
+                         domain = Map_Information$Population,
+                         bins = c(11000000, 
+                                  seq(max(signif(Map_Information$Population, 2)),
+                                      min(signif(Map_Information$Population, 2)),
+                                      by = -1000000),
+                                  0))
+
+Map %>% 
+  leaflet::leaflet() %>% 
+  leaflet::setView(lat = 37.501684, 
+                   lng = -119.238017, 
+                   zoom = 7) %>%
+  leaflet::addPolygons(fillColor = ~pal(Map_Information$Log_pop),
+                       weight = 2,
+                       opacity = 1,
+                       color = "lightgrey",
+                       dashArray = "1",
+                       fillOpacity = 0.7,
+                       highlight = highlight_options,
+                       label = labels) %>% 
+  leaflet::addLegend(pal = pal_visual, 
+                     values = Map_Information$Population,
+                     opacity = 0.7, 
+                     title = NULL,
+                     position = "topright")
+```
+
+
+```{r Revenue}
+Revenue_Display <- function(data, county){ 
+  
+  if(county == "None"){ 
+    plot <- NULL
+  } else {
+    temp <- data %>%
+    dplyr::mutate(County = stringr::str_remove(County, "[[:punct:]]")) %>% 
+    dplyr::filter(County == county) %>% 
+    dplyr::select(-County) %>% 
+    dplyr::rename("Local Sales Taxes" = "Local Sales and In-Lieu Tax",
+                  "Other Gov't" = "Other Gov't and In Lieu",
+                  "Fines and Penalties" = "Fines, Forfeitures, Penalties",
+                  "Miscellaneous" = "Miscellaneous, Benefit Assessmets, & Use of Money and Property",
+                  "Licenses/Permit Fees"  = "Licenses, Permits, Franchises") %>% 
+    tidyr::gather() %>% 
+    dplyr::arrange(value) %>% 
+    dplyr::slice(1:(nrow(.)-3))
+  
+  plot <- temp %>%
+    dplyr::mutate(key = factor(key, levels = temp %>% dplyr::select(key) %>%  dplyr::pull())) %>%
+    dplyr::arrange(desc(key)) %>% 
+    dplyr::mutate(value_percent = paste(round(value/sum(value), 2)*100, "%")) %>% 
+    plotly::plot_ly(labels = ~key,
+                    values = ~value,
+                    type = "pie",
+                    hole = 0.5) %>% 
+    plotly::layout(title = ~paste(county %>% stringr::str_to_title(), 
+                                  " County Sources and Total Revenue: $", 
+                                  format(sum(value),
+                                         format = "d",
+                                         big.mark = ","),
+                                  sep = ""))#,
+                   #paper_bgcolor = 'black'),
+                   #plot_bgcolor = 'black')
+  }
+  
+  
+  return(plot)
+}
+ 
+Revenue_Display(Revenue, "San Francisco") 
+```
+
+
+```{r Expenditures}
+Expenditures_Display <- function(data, county){   
+  
+  if(county == "None"){ 
+    plot <- NULL
+  } else {
+  plot <- data %>% 
+    dplyr::mutate(County = stringr::str_remove(County, "[[:punct:]]")) %>%
+    dplyr::filter(County == county) %>% 
+    dplyr::select(-County) %>% 
+    dplyr::rename("General Gov't" =  "General Gov't (Legislative, Admin, Finance, HR, etc.)",
+                  "Law Enforcement" = "Protection (Sheriff, Jail, Inspection, etc)",
+                  "Public Health" =  "Health, Mental Health, Substance Abuse, Public Health",
+                  "Roads and Facilities" =  "Roads, Facilities, and Sanitation",
+                  "Education" = "Libraries, Education, Recreation, Culture",
+                  "Debt" =  "Debt - Principal & Interest") %>% 
+    tidyr::gather() %>% 
+    plotly::plot_ly(labels = ~key,
+                    values = ~value,
+                    type = "pie",
+                    hole = 0.5) %>% 
+    plotly::layout(title = ~paste(county %>% stringr::str_to_title(), 
+                                  " County Total Expenditure: $", 
+                                  format(sum(value),
+                                         format = "d",
+                                         big.mark = ","),
+                                  sep = ""))#,
+                   #paper_bgcolor = 'black',
+                   #plot_bgcolor = 'black') 
+  }
+  
+  return(plot)
+}
+ 
+Expenditures_Display(Expenditures, "San Francisco")   
+```
+
+
+```{r Industry}
+Industry_Display <- function(data, county) {
+  
+   
+  if(county == "None"){ 
+    plot <- NULL
+  } else {
+
+    County <- paste(county, "County")
+    
+    temp <- data %>% 
+      dplyr::filter(Year == 2018,
+                    `Area Name` == County,
+                    Month == "January",
+                    `Industry Title` != "Total Nonfarm" &
+                      `Industry Title` != "Total Farm" &
+                      `Industry Title` !=  "Total Private" &
+                      `Industry Title` !=  "Other Services" &
+                      `Industry Title` !=  "Special Districts plus Indian Tribes" &
+                      `Industry Title` !=  "Total Wage and Salary") %>% 
+      dplyr::arrange(desc(`Current Employment`)) 
+  
+  
+    Top_Industry <- temp %>% 
+      dplyr::select(`Industry Title`, `Current Employment`) %>% 
+      dplyr::slice(1:10) 
+    
+    IoI <- Top_Industry %>% dplyr::select(`Industry Title`) %>% dplyr::pull() %>% base::rev()
+    
+    total_population <- temp %>% dplyr::summarise(total = sum(`Current Employment`)) %>% dplyr::pull()
+    
+    plot <- Top_Industry %>% 
+      dplyr::mutate(`Industry Title` = factor(`Industry Title`, levels = IoI),
+                    `Current Employment Percent` = round(`Current Employment`/total_population, 3)*100) %>% 
+      plotly::plot_ly(y = ~`Industry Title`,
+                      x = ~`Current Employment`,
+                      type ="bar",
+                      text = ~paste(`Current Employment Percent`, "%", sep = ""),
+                      textposition = "outside") %>% 
+      plotly::layout(xaxis = list(title = "People Employed"),
+                     yaxis = list(title = ""),
+                     title = ~paste(county %>% stringr::str_to_title(),
+                                    "County Top 10 Ten Leading Industries"))#,
+                     #paper_bgcolor = 'black',
+                     #plot_bgcolor = 'black')
+  }
+  
+  return(plot)
+}
+
+Industry_Display(Industry, "San Francisco")s
+```
+
+
+```{r Population_Growth}
+Population_Growth_Display <- function(data, county) { 
+  
+  if(county == "None"){ 
+    plot <- NULL
+  } else { 
+  
+    County <- county %>% base::toupper()
+    
+    data_lessthan_2019 <- data %>% 
+    dplyr::filter(county == County,
+                  year <= 2019) %>% 
+    dplyr::group_by(year, county) %>%  
+    dplyr::summarise(total = sum(pop_total)) %>% 
+    dplyr::ungroup()
+  
+  
+    data_morethan_2019 <- data %>%
+      dplyr::filter(county == County,
+                    year > 2019) %>% 
+      dplyr::group_by(year) %>% 
+      dplyr::summarise(total = sum(pop_total)) %>% 
+      dplyr::ungroup()
+    
+    
+    plot <- plotly::plot_ly() %>% 
+      add_trace(data = data_lessthan_2019,
+                x = ~year, y = ~total, 
+                type = "scatter", 
+                mode = "lines+markers",
+                name = "Recorded Values") %>% 
+      add_trace(data = data_morethan_2019,
+                x = ~year, y = ~total, 
+                type = "scatter", mode = "lines+markers",
+                name = "Predicted Values") %>% 
+      plotly::animation_opts(1000, 
+                             easing = "elastic", 
+                             redraw = FALSE) %>% 
+      plotly::layout(xaxis = list(title = "Year"),
+                     yaxis = list(title = "Population"),
+                     title = ~paste(data_lessthan_2019 %>% 
+                                    dplyr::select(county) %>% 
+                                    base::unique() %>% 
+                                    stringr::str_to_title(), "County Population Growth"))#,
+                     #paper_bgcolor = 'black',
+                     #plot_bgcolor = 'black')
+  }
+
+  return(plot)
+  
+}
+
+Population_Growth_Display(Population_Growth, "San Diego")
+```
+
+
+```{r Gender Prediction, echo=FALSE, message=TRUE, warning=TRUE}
+Gender_Difference_Display <- function(data, county){
+  
+  County <- county %>% base::toupper()
+
+  plot <- data %>%  
+      dplyr::filter(county == County) %>% 
+      dplyr::select(-c(pop_total, fips, county)) %>%  
+      dplyr::mutate(age = factor(age, levels = c(0:100))) %>% 
+      plotly::plot_ly(y = ~pop_female, x = ~age,
+                      type = "scatter", mode = "lines", 
+                      frame = ~year,
+                      name = "Female",
+                      color = I("pink"),
+                      line = list(width = 4)) %>% 
+      plotly::add_trace(y = ~pop_male, x = ~age,
+                        type = "scatter", mode = "lines", 
+                        frame = ~year,
+                        name = "Male",
+                        color = I("steelblue")) %>% 
+      plotly::animation_slider(currentvalue = list(prefix = "YEAR ",
+                                                   font = list(color="steelblue"))) %>% 
+      plotly::layout(xaxis = list(title ="Age", 
+                                  dtick = 10),
+                     yaxis = list(title = "Population", dtick = 5000))#,
+                     #paper_bgcolor = 'black',
+                     #plot_bgcolor = 'black')
+
+  return(plot)  
+} 
+ 
+Gender_Difference_Display(Population_Growth, "San Diego")
+```
+
+
+```{r Unemployment}
+Unemployment_Display <- function(data, county) { 
+  
+  if(county == "None"){ 
+    plot <- NULL
+  } else {
+  
+    County = paste(county, "County", sep = " ")
+    
+    plot <- data %>%
+      dplyr::filter(`Area Name` != "California",
+                  `Area Name` == County) %>% 
+      dplyr::group_by(Year) %>% 
+      dplyr::mutate(Unemployment_Rate = round(Unemployment/`Labor Force`, 3)*100) %>% 
+      dplyr::summarise(Average_Unemployment_Rate = round(mean(Unemployment_Rate), 1),
+                       SD_Unemployment_Rate = round(sd(Unemployment_Rate), 1),
+                       Upper_Bound = Average_Unemployment_Rate + SD_Unemployment_Rate,
+                       Loweer_Bound = Average_Unemployment_Rate - SD_Unemployment_Rate) %>% 
+      plotly::plot_ly(x = ~Year, y = ~Average_Unemployment_Rate,
+                      type = "scatter", mode = "lines+markers",
+                      error_y = ~list(array = SD_Unemployment_Rate, color = '#000000'),
+                      marker = list(size = 7),
+                      text = ~paste("Year: ", Year, "\n",
+                                    "Average Unemployment Rate: ", Average_Unemployment_Rate, "%", 
+                                     sep = "")) %>% 
+      plotly::layout(xaxis = list(title = "Year"),
+                     yaxis = list(title = "Unemploymnet Rate"),
+                     title = ~paste(County, "Unemployment Rate"))#,
+                     #paper_bgcolor = 'black',
+                     #plot_bgcolor = 'black')
+  }
+  
+  return(plot)
+} 
+
+Unemployment_Display(Unemployment, "San Diego")
+```
