@@ -147,22 +147,25 @@ Revenue_Display <- function(data, county){
     plotly::plot_ly(labels = ~key,
                     values = ~value,
                     type = "pie",
-                    hole = 0.5) %>% 
+                    hole = 0.5,
+                    textfont = list(color = '#ffffff')) %>% 
     plotly::layout(title = ~paste(county %>% stringr::str_to_title(), 
                                   " County Sources and Total Revenue: $", 
                                   format(sum(value),
                                          format = "d",
                                          big.mark = ","),
-                                  sep = ""))#,
-                   #paper_bgcolor = 'black'),
-                   #plot_bgcolor = 'black')
+                                  sep = ""),
+                   uniformtext=list(minsize=12, mode='hide'),
+                   font = list(color="#ffffff"),
+                   paper_bgcolor = 'black',
+                   plot_bgcolor = 'black')
   }
   
   
   return(plot)
 }
  
-Revenue_Display(Revenue, "San Francisco") 
+Revenue_Display(Revenue, "Riverside") 
 ```
 
 
@@ -192,9 +195,10 @@ Expenditures_Display <- function(data, county){
                                   format(sum(value),
                                          format = "d",
                                          big.mark = ","),
-                                  sep = ""))#,
-                   #paper_bgcolor = 'black',
-                   #plot_bgcolor = 'black') 
+                                  sep = ""),
+                   font = list(color="#ffffff"),
+                   paper_bgcolor = 'black',
+                   plot_bgcolor = 'black') 
   }
   
   return(plot)
@@ -243,18 +247,19 @@ Industry_Display <- function(data, county) {
                       type ="bar",
                       text = ~paste(`Current Employment Percent`, "%", sep = ""),
                       textposition = "outside") %>% 
-      plotly::layout(xaxis = list(title = "People Employed"),
-                     yaxis = list(title = ""),
+      plotly::layout(xaxis = list(title = "People Employed", gridcolor = "#4b4949"),
+                     yaxis = list(title = "", gridcolor = "#4b4949"),
                      title = ~paste(county %>% stringr::str_to_title(),
-                                    "County Top 10 Ten Leading Industries"))#,
-                     #paper_bgcolor = 'black',
-                     #plot_bgcolor = 'black')
+                                    "County Top 10 Ten Leading Industries"),
+                     font = list(color="#ffffff"),
+                     paper_bgcolor = 'black',
+                     plot_bgcolor = 'black')
   }
   
   return(plot)
 }
 
-Industry_Display(Industry, "San Francisco")s
+Industry_Display(Industry, "San Francisco")
 ```
 
 
@@ -296,14 +301,16 @@ Population_Growth_Display <- function(data, county) {
       plotly::animation_opts(1000, 
                              easing = "elastic", 
                              redraw = FALSE) %>% 
-      plotly::layout(xaxis = list(title = "Year"),
-                     yaxis = list(title = "Population"),
+      plotly::layout(xaxis = list(title = "Year", gridcolor = "#4b4949"),
+                     yaxis = list(title = "Population", gridcolor = "#4b4949"),
                      title = ~paste(data_lessthan_2019 %>% 
                                     dplyr::select(county) %>% 
                                     base::unique() %>% 
-                                    stringr::str_to_title(), "County Population Growth"))#,
-                     #paper_bgcolor = 'black',
-                     #plot_bgcolor = 'black')
+                                    stringr::str_to_title(), "County Population Growth"),
+                     font = list(color="#ffffff"),
+                     paper_bgcolor = 'black',
+                     plot_bgcolor = 'black',
+                     legend = list(orientation = 'h'))
   }
 
   return(plot)
@@ -337,10 +344,14 @@ Gender_Difference_Display <- function(data, county){
       plotly::animation_slider(currentvalue = list(prefix = "YEAR ",
                                                    font = list(color="steelblue"))) %>% 
       plotly::layout(xaxis = list(title ="Age", 
-                                  dtick = 10),
-                     yaxis = list(title = "Population", dtick = 5000))#,
-                     #paper_bgcolor = 'black',
-                     #plot_bgcolor = 'black')
+                                  dtick = 10, 
+                                  gridcolor = "#4b4949"),
+                     yaxis = list(title = "Population", 
+                                  dtick = 5000, 
+                                  gridcolor = "#4b4949"),
+                     font = list(color="#ffffff"),
+                     paper_bgcolor = 'black',
+                     plot_bgcolor = 'black')
 
   return(plot)  
 } 
@@ -369,16 +380,17 @@ Unemployment_Display <- function(data, county) {
                        Loweer_Bound = Average_Unemployment_Rate - SD_Unemployment_Rate) %>% 
       plotly::plot_ly(x = ~Year, y = ~Average_Unemployment_Rate,
                       type = "scatter", mode = "lines+markers",
-                      error_y = ~list(array = SD_Unemployment_Rate, color = '#000000'),
+                      error_y = ~list(array = SD_Unemployment_Rate, color = '#c3c3c3'),
                       marker = list(size = 7),
                       text = ~paste("Year: ", Year, "\n",
                                     "Average Unemployment Rate: ", Average_Unemployment_Rate, "%", 
                                      sep = "")) %>% 
-      plotly::layout(xaxis = list(title = "Year"),
-                     yaxis = list(title = "Unemploymnet Rate"),
-                     title = ~paste(County, "Unemployment Rate"))#,
-                     #paper_bgcolor = 'black',
-                     #plot_bgcolor = 'black')
+      plotly::layout(xaxis = list(title = "Year", gridcolor = "#4b4949"),
+                     yaxis = list(title = "Unemploymnet Rate", gridcolor = "#4b4949"),
+                     title = ~paste(County, "Unemployment Rate"),
+                     font = list(color="#ffffff"),
+                     paper_bgcolor = 'black',
+                     plot_bgcolor = 'black')
   }
   
   return(plot)

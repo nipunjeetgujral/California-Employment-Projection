@@ -76,7 +76,7 @@ ui <- shinydashboard::dashboardPage(
           . 8C8C8C
         */
         /* body 495D60 8C8C8C*/
-        .content-wrapper, .right-side {background-color: #ffffff;}'
+        .content-wrapper, .right-side {background-color: #000000;}'
         )
       )
     ),
@@ -137,33 +137,33 @@ ui <- shinydashboard::dashboardPage(
       # map ####
       
       # background color
-      tags$head(tags$style(HTML(".leaflet-container { background: #fff; }"))),
+      tags$head(tags$style(HTML(".leaflet-container { background: #000; }"))),
       
       # map object
+      
+      
       shiny::column(
         7,
-        shinydashboard::box(shiny::column(4, 
-                                          offset = 4, 
-                                          align = "center",
-                                          shiny::selectInput(inputId = "county",
-                                                             label = shiny::h4(shiny::strong("Select a County")),
-                                                             choices = c("None", sort(ordered_county_names))),
-                                          shiny::textOutput(outputId = "OUTPUT_TEXT")),
-                            shiny::textOutput(outputId = "county_output"),
-                            leaflet::leafletOutput(outputId = "plot1", height=1250),
-                            width = 14, 
-                            height = 1425,
-                            title = "Map",
-                            solidHeader = TRUE, 
-                            collapsible = FALSE,
-                            status = "primary"),
+        shinydashboard::box(
+          shiny::column(4,offset = 4,
+                        align = "center",
+                        shiny::selectInput(inputId = "county",
+                                           label = shiny::h4(HTML("<font color='white'>Select a County</font>") ),
+                                           choices = c("None", sort(ordered_county_names)))),
+            leaflet::leafletOutput(outputId = "plot1", height=1250),
+            width = 14, 
+            height = 1425,
+            title = "Map",
+            solidHeader = TRUE, 
+            collapsible = FALSE,
+            status = "primary"),
       ),
       
       # population statistics ####
       shiny::column(
         5,
         shinydashboard::box(
-          #tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
+          tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
           plotlyOutput(outputId = "plot2"),
           title = "Revenue",
           width = 12, 
@@ -171,7 +171,7 @@ ui <- shinydashboard::dashboardPage(
           collapsible = TRUE,
           status = "primary"),
         shinydashboard::box(
-          #tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
+          tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
           plotlyOutput(outputId = "plot3"), 
           title = "Expenditures", 
           width = 12, 
@@ -179,7 +179,7 @@ ui <- shinydashboard::dashboardPage(
           collapsible = TRUE,
           status = "primary"),
         shinydashboard::box(
-          #tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
+          tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
           plotlyOutput(outputId = "plot4"), 
           title = "Industry",
           width = 12, 
@@ -191,10 +191,12 @@ ui <- shinydashboard::dashboardPage(
       # forcasts ####
       fluidRow(
         shinydashboard::box(plotlyOutput(outputId = "plot5"), 
+                            tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
                             width  = 6,
                             title = "Forecasted Population Growth", solidHeader = TRUE, collapsible = TRUE,
                             status = "primary"),
         shinydashboard::box(plotlyOutput(outputId = "plot6"), 
+                            tags$style(HTML(".box.box-solid.box-primary{background:#000000}")),
                             width  = 6,
                             title = "Unemployment", solidHeader = TRUE, collapsible = TRUE,
                             status = "primary"),
